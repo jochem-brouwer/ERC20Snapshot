@@ -15,6 +15,8 @@ contract ERC20Snapshot is ERC20 {
     
     bytes32 public rootHash;
     
+    mapping(address => bool) claimed;
+    
     /** @dev Contract constructor
       * @param _rootHash The bytes32 rootHash of the Merkle Tree
       * @param _cap The token supply cap
@@ -42,6 +44,8 @@ contract ERC20Snapshot is ERC20 {
             require(hashes[0] == myHash || hashes[1] == myHash);
         }
         require(MerkleTree.InTree(rootHash, hashes));
+        require(!claimed[target]);
+        claimed[target] = true;
         
         _balances[target] = balance;
         emit Transfer(address(0x0), target, balance);
