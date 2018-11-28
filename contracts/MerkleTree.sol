@@ -1,6 +1,6 @@
-//pragma solidity ^0.5.0;
+pragma solidity ^0.5.0;
 
-contract MerkleTree {
+library MerkleTree {
     
     /** @dev Function to return true if a TargetHash was part of a tree
       * @param RootHash the root hash of the tree
@@ -15,8 +15,10 @@ contract MerkleTree {
         }
         return (CHash == RootHash);
     }
-    
-    function GetRootHash(bytes32[] memory Inputs) public  returns (bytes32) {
+}
+
+contract MerkleTreeUtils {
+    function GetRootHash(bytes32[] memory Inputs) public pure returns (bytes32) {
         uint len = Inputs.length;
         
         if (len == 1) {
@@ -68,7 +70,4 @@ contract MerkleTree {
         }
         return CurrentTree[0];
     }
-    
-    
-    
 }
