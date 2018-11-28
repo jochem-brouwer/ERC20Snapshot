@@ -36,14 +36,14 @@ contract ERC20Snapshot is ERC20 {
         return keccak256(abi.encodePacked(target,balance));
     }
 
-    function claim(address target, uint balance, bytes32[] calldata hashes) external {
+    function claim(address target, uint balance, bytes32[] calldata hashes, bool[] calldata right) external {
         bytes32 myHash = hash(target, balance);
         if (hashes.length == 1) {
             require(hashes[0] == myHash);
         } else {
             require(hashes[0] == myHash || hashes[1] == myHash);
         }
-        require(MerkleTree.InTree(rootHash, hashes));
+        require(MerkleTree.InTree(rootHash, hashes, right));
         require(!claimed[target]);
         claimed[target] = true;
         
