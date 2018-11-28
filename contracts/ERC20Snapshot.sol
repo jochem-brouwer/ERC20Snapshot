@@ -1,6 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "./ERC20.sol"
+import "./ERC20.sol";
+import "./MerkleTree.sol";
 
 /// @title ERC20 snapshot contract
 /// @author Jochem Brouwer
@@ -27,6 +28,23 @@ contract ERC20Snapshot is ERC20 {
     { 
         rootHash = _rootHash;
         _balances[msg.sender] = 0;
+    }
+    
+    function hash(address target, uint balance) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(target,balance));
+    }
+
+    function claim(address target, uint balance, bytes32[] calldata hashes) external {
+        bytes32 myHash = hash(target, balance);
+        if (hashes.length == 1) {
+            require(hashes[0] == myHash);
+        } else {
+            require(hashes[0] == myHash || hashes[1] == myHash);
+        }
+        require(MerkleTree.InTree(rootHash, hashes));
+        
+        _balances[target] = balance;
+        emit Transfer(address(0x0), target, balance);
     }
 
 }
