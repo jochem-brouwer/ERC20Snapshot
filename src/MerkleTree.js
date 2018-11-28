@@ -6,8 +6,23 @@ class MerkleTree {
     this.web3 = web3;
   }
 
+  createProof(hashList, interestedIn) {
+    let output = {
+      hashRight = [];
+      hashes = [];
+    }
+
+  }
+
+  getHash(address, balance){
+    return this.web3.utils.soliditySha3(this.web3.eth.abi.encodeParameters(['address', 'uint'], [address, balance]));
+  }
+
   getRoot(list) {
     let tempList = list;
+    if (list.length == 1){
+      return list[0];
+    }
     let Web3 = this.web3;
     while (true) {
       let Tree = [];
