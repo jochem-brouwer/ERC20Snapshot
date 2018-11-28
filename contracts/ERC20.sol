@@ -25,6 +25,13 @@ contract ERC20 is ERC20Interface {
 
     mapping(address => uint) internal _balances;
     mapping(address => mapping(address => uint)) internal _allowance;
+    
+    /** @dev Contract constructor
+      * @param _cap The token supply cap
+      * @param _name The name of the token 
+      * @param _symbol The symbol of the token
+      * @param _decimals The decimals of the token
+      */
 
     constructor(uint _cap, string memory _name, string memory _symbol, uint _decimals) public {
         _balances[msg.sender] = _cap;
