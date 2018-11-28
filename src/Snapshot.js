@@ -33,7 +33,7 @@ class Snapshot {
     let key;
 
     for (key in accountMap) {
-      list.push(accountMap[key]);
+      list.push(key);
     }
     return list;
   }
@@ -43,11 +43,19 @@ class Snapshot {
   // but this assumes that initial balances (like minting) are also emitted as event
   // this is added for completeness.
   async getBalances(accountList, blockNumber){
-
+    let index;
+    let map = {};
+    for (index in accountList) {
+      let acc = accountList[index];
+      let bal = await this.contract.methods.balanceOf(acc).call({}, blockNumber);
+      map[acc] = bal;
+    }
+    return map;
   }
 
-  getRootHash(blockNumber) {
-    let accountList = this.getAccountList(blockNumber);
+  async getRootHash(blockNumber) {
+    let accountList = await this.getAccountList(blockNumber);
+    console.log(await this.getBalances(accountList, blockNumber))
   }
 
 }
