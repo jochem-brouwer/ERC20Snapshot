@@ -43,7 +43,7 @@ contract MerkleTreeUtils {
             if (readInputs) {
                 hash1 = Inputs[index];
                 if (index + 1 > maxIndex){
-                    newHash = keccak256(abi.encodePacked(hash1));
+                    newHash = keccak256(abi.encodePacked(hash1,hash1));
                 }
                 else {
                     newHash = keccak256(abi.encodePacked(hash1,Inputs[index+1]));
@@ -53,7 +53,7 @@ contract MerkleTreeUtils {
             else {
                 hash1 = CurrentTree[index];
                 if (index + 1 > maxIndex){
-                    newHash = keccak256(abi.encodePacked(hash1));
+                    newHash = keccak256(abi.encodePacked(hash1,hash1));
                 }
                 else {
                     newHash = keccak256(abi.encodePacked(hash1,CurrentTree[index+1]));
