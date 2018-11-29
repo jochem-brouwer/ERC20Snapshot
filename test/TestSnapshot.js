@@ -46,7 +46,58 @@ describe('Snapshot', function () {
     await ERC20Contract.methods.transfer(accounts[4], (15e18).toString()).send({from: accounts[0]});
 
     let blockN = await web3.eth.getBlockNumber();
-    Snap.getRootHash(blockN);
+    let root = await Snap.getRootHash(blockN);
+
+    await Snap.setupData(blockN);
+
+    let hashList = Snap.data[blockN].hashList;
+
+    
+
+    let ctr = new web3.eth.Contract(ERC20Snapshot.abi);
+    let receipt
+    let tx = await ctr.deploy({
+      data: ERC20Snapshot.bytecode,
+      arguments: [root, (100e18).toString(), "TestToken", "TT", 18]
+    }).send({
+      from: accounts[0],
+      gas: 4000000,
+    }).on("receipt", function(rcpt){
+      receipt = rcpt;
+    });
+
+
+
+    ERC20SnapshotContract = new web3.eth.Contract(ERC20Snapshot.abi, receipt.contractAddress);
+
+    //let bool = await ERC20SnapshotContract.methods.checkProof(proof.hashes, proof.hashRight).call();
+    //console.log(bool);
+
+    let data = Snap.data[blockN]
+    let account;
+    let index;
+
+    for (key in data.sortedAccountList) {
+      let acct = data.sortedAccountList[key];
+      if (data.balanceMap[acct] > 0){
+        account = acct;
+        index = key;
+        break;
+      }
+    }
+
+    let proof = (MerkleTree.createProof(hashList, hashList[index]))
+
+    await ERC20SnapshotContract.methods.claim(account, data.balanceMap[account], proof.hashes, proof.hashRight).send({
+      from: accounts[0]
+    }).on("receipt", function(rcpt){
+    //  console.log(rcpt)
+    })
+
+
+    let newBalance = await ERC20SnapshotContract.methods.balanceOf(account).call();
+    console.log("Balance was: " + data.balanceMap[account] + " and is in the new contract: " + newBalance)
+    assert.equal(data.balanceMap[account], newBalance, "balances should be equal")
 
   })
 
