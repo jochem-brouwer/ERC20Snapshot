@@ -80,35 +80,6 @@ describe('Snapshot', function () {
 
     let data = Snap.data[blockN]
 
-    //let bool = await ERC20SnapshotContract.methods.checkProof(proof.hashes, proof.hashRight).call();
-    //console.log(bool);
-
-    /*let data = Snap.data[blockN]
-    let account;
-    let index;
-
-    for (key in data.sortedAccountList) {
-      let acct = data.sortedAccountList[key];
-      if (data.balanceMap[acct] > 0){
-        account = acct;
-        index = key;
-        break;
-      }
-    }
-
-    let proof = (MerkleTree.createProof(hashList, hashList[index]))
-
-    await ERC20SnapshotContract.methods.claim(account, data.balanceMap[account], proof.hashes, proof.hashRight).send({
-      from: accounts[0]
-    }).on("receipt", function(rcpt){
-    //  console.log(rcpt)
-    })
-
-
-    let newBalance = await ERC20SnapshotContract.methods.balanceOf(account).call();
-    console.log("Balance was: " + data.balanceMap[account] + " and is in the new contract: " + newBalance)
-    assert.equal(data.balanceMap[account], newBalance, "balances should be equal") */
-    //console.log(data.sortedAccountList)
     for (key in data.sortedAccountList) {
       let account = data.sortedAccountList[key];
       let tx = await Snap.getClaimTX(blockN, account);
@@ -120,6 +91,102 @@ describe('Snapshot', function () {
       console.log("Balance was: " + data.balanceMap[account] / 1e18 + " and is in the new contract: " + newBalance / 1e18)
       console.log("Gas usage: " + rcpt.gasUsed);
       assert.equal(data.balanceMap[account], newBalance, "balances should be equal") 
+    }
+
+  })
+
+  it('should not be able to claim balances twice', async() => {
+
+    await ERC20Contract.methods.transfer(accounts[1], (10e18).toString()).send({from: accounts[0]});
+    await ERC20Contract.methods.transfer(accounts[2], (20e18).toString()).send({from: accounts[0]});
+    await ERC20Contract.methods.transfer(accounts[3], (5e18).toString()).send({from: accounts[0]});
+    await ERC20Contract.methods.transfer(accounts[4], (15e18).toString()).send({from: accounts[0]});
+
+    let blockN = await web3.eth.getBlockNumber();
+    let root = await Snap.getRootHash(blockN);
+
+    await Snap.setupData(blockN);
+
+    let ctr = new web3.eth.Contract(ERC20Snapshot.abi);
+    let receipt
+    let tx = await ctr.deploy({
+      data: ERC20Snapshot.bytecode,
+      arguments: [root, (100e18).toString(), "TestToken", "TT", 18]
+    }).send({
+      from: accounts[0],
+      gas: 4000000,
+    }).on("receipt", function(rcpt){
+      receipt = rcpt;
+    });
+
+
+
+    ERC20SnapshotContract = new web3.eth.Contract(ERC20Snapshot.abi, receipt.contractAddress);
+
+    Snap.setSnapshotContract(receipt.contractAddress);
+
+    let data = Snap.data[blockN]
+
+    try {
+
+    for (key in data.sortedAccountList) {
+      let account = data.sortedAccountList[key];
+      let tx = await Snap.getClaimTX(blockN, account);
+      
+      await tx.send({from: accounts[0]})
+      await tx.send({from: accounts[0]})
+
+      throw("should already have thrown")
+    }
+    } catch (e) {
+      assert(e.message.includes('revert'), 'Expected dispute to fail')
+    }
+
+  })
+
+  it('should not be able to create forged proofs', async() => {
+
+    await ERC20Contract.methods.transfer(accounts[1], (10e18).toString()).send({from: accounts[0]});
+    await ERC20Contract.methods.transfer(accounts[2], (20e18).toString()).send({from: accounts[0]});
+    await ERC20Contract.methods.transfer(accounts[3], (5e18).toString()).send({from: accounts[0]});
+    await ERC20Contract.methods.transfer(accounts[4], (15e18).toString()).send({from: accounts[0]});
+
+    let blockN = await web3.eth.getBlockNumber();
+    let root = await Snap.getRootHash(blockN);
+
+    await Snap.setupData(blockN);
+
+    let ctr = new web3.eth.Contract(ERC20Snapshot.abi);
+    let receipt
+    let tx = await ctr.deploy({
+      data: ERC20Snapshot.bytecode,
+      arguments: [root, (100e18).toString(), "TestToken", "TT", 18]
+    }).send({
+      from: accounts[0],
+      gas: 4000000,
+    }).on("receipt", function(rcpt){
+      receipt = rcpt;
+    });
+
+
+
+    ERC20SnapshotContract = new web3.eth.Contract(ERC20Snapshot.abi, receipt.contractAddress);
+
+    Snap.setSnapshotContract(receipt.contractAddress);
+
+    let data = Snap.data[blockN]
+
+    try {
+
+    for (key in data.sortedAccountList) {
+      let account = data.sortedAccountList[key];
+      let tx = await Snap.getClaimTX(blockN, account);
+      tx.arguments[1] = (100e18).toString();
+      await tx.send({from: accounts[0]})
+      throw("should already have thrown")
+    }
+    } catch (e) {
+      assert(e.message.includes('revert'), 'Expected dispute to fail')
     }
 
   })
