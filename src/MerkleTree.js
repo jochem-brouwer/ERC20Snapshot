@@ -8,8 +8,8 @@ class MerkleTree {
 
   createProof(hashList, interestedIn) {
     let output = {
-      hashRight = [];
-      hashes = [];
+      hashRight: [],
+      hashes: [],
     }
 
     if (hashList.length == 1){
@@ -18,9 +18,11 @@ class MerkleTree {
       return output;
     }
 
-    let tempList = list;
+    let tempList = hashList;
     let Web3 = this.web3;
     let currentInterest = interestedIn;
+
+    let List = [hashList];
 
     while (true) {
       let Tree = [];
@@ -32,22 +34,51 @@ class MerkleTree {
           let data2 = Web3.eth.abi.encodeParameters(['bytes32'], [tempList[key+1]]);
           let toHash = Web3.eth.abi.encodeParameters(['bytes32','bytes32'], [data, data2] )
           hash = Web3.utils.soliditySha3(toHash);        
+
+          if (data == interestedIn) {
+            output.hashRight.push(true);
+            output.hashes.push(data2);
+            if (output.hashes.length == 1){
+              output.hashRight.push(false);
+              output.hashes.push(data);
+            }
+            interestedIn = hash;
+          } else if (data2 == interestedIn) {
+            output.hashRight.push(false);
+            output.hashes.push(data);
+            if (output.hashes.length == 1){
+              output.hashRight.push(true);
+              output.hashes.push(data2);
+            }
+            interestedIn = hash;
+          }
+
         } else {
           let toHash = Web3.eth.abi.encodeParameters(['bytes32','bytes32'], [data, data] )
           hash = Web3.utils.soliditySha3(data);
+          if (data == interestedIn) {
+            output.hashRight.push(false);
+            output.hashes.push(data);
+            if (output.hashes.length == 1){
+              output.hashRight.push(false);
+              output.hashes.push(data);
+            }
+            interestedIn = hash;
+          }
         }
 
         Tree.push(hash);
       }
 
       tempList = Tree;
+      List.push(tempList);
   
       if (Tree.length == 1){
         break;
       }
     }
 
-
+    console.log(List)
 
     return output;
   }
