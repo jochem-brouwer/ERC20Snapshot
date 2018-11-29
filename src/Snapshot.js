@@ -1,6 +1,8 @@
 const Web3 = require('web3')
 const ERC20 = require('../build/contracts/ERC20')
 
+const MerkleTree = require("./MerkleTree")
+
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -12,6 +14,8 @@ class Snapshot {
     this.blockNumber = blockNumber; // block number contract was deployed.
     this.web3 = web3;
     this.contract = new this.web3.eth.Contract(ERC20.abi, this.target);
+    this.MerkleTree = new MerkleTree(web3);
+    this.data = {};
   }
 
   async getAccountList(blockNumber) {
@@ -53,9 +57,50 @@ class Snapshot {
     return map;
   }
 
+  getSortedAccounts(accountList) {
+    let sorted = accountList.sort(function(account1, account2){
+      if (account1.toLowerCase() < account2.toLowerCase()){
+        return -1;
+      } else {
+        return 1;
+      }
+    })
+    return sorted;
+  }
+
+  getHashList(sortedAccountList, balanceMap) {
+
+    let hashList = [];
+    let key;
+    for (key in sortedAccountList){
+      let account = sortedAccountList[key];
+      let balance = balanceMap[account];
+      let hash = this.MerkleTree.getHash(account, balance);
+      hashList.push(hash);
+    }
+    return hashList;
+  }
+
   async getRootHash(blockNumber) {
+    await this.setupData(blockNumber)
+
+    return this.data[blockNumber].merkleRoot;
+
+  }
+
+  async setupData(blockNumber) {
     let accountList = await this.getAccountList(blockNumber);
-    console.log(await this.getBalances(accountList, blockNumber))
+    let sorted =  this.getSortedAccounts(accountList);
+    let balanceMap = await this.getBalances(sorted, blockNumber);
+    let hashList = this.getHashList(sorted, balanceMap);
+    let root = this.MerkleTree.getRoot(hashList);
+    this.data[blockNumber] = {
+      //accountList: accountList,
+      sortedAccountList: sorted, 
+      balanceMap: balanceMap, 
+      hashList: hashList,
+      merkleRoot: root
+    }
   }
 
 }
