@@ -55,7 +55,7 @@ class MerkleTree {
 
         } else {
           let toHash = Web3.eth.abi.encodeParameters(['bytes32','bytes32'], [data, data] )
-          hash = Web3.utils.soliditySha3(data);
+          hash = Web3.utils.soliditySha3(toHash);
           if (data == interestedIn) {
             output.hashRight.push(false);
             output.hashes.push(data);
@@ -77,6 +77,8 @@ class MerkleTree {
         break;
       }
     }
+
+//    console.log(List, "output", output)
 
     return output;
   }
@@ -102,7 +104,8 @@ class MerkleTree {
           let toHash = Web3.eth.abi.encodeParameters(['bytes32','bytes32'], [data, data2] )
           hash = Web3.utils.soliditySha3(toHash);        
         } else {
-          hash = Web3.utils.soliditySha3(data);
+          let toHash = Web3.eth.abi.encodeParameters(['bytes32','bytes32'], [data, data] )
+          hash = Web3.utils.soliditySha3(toHash);
         }
 
         Tree.push(hash);
