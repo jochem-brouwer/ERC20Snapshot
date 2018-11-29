@@ -1,5 +1,6 @@
 const Web3 = require('web3')
 const ERC20 = require('../build/contracts/ERC20')
+const ERC20Snapshot = require('../build/contracts/ERC20Snapshot')
 
 const MerkleTree = require("./MerkleTree")
 
@@ -16,6 +17,10 @@ class Snapshot {
     this.contract = new this.web3.eth.Contract(ERC20.abi, this.target);
     this.MerkleTree = new MerkleTree(web3);
     this.data = {};
+  }
+
+  setSnapshotContract(target) {
+    this.snapshot = new this.web3.eth.Contract(ERC20Snapshot.abi, target);
   }
 
   async getAccountList(blockNumber) {
@@ -89,6 +94,9 @@ class Snapshot {
   }
 
   async setupData(blockNumber) {
+    if (this.data[blockNumber]){
+      return;
+    }
     let accountList = await this.getAccountList(blockNumber);
     let sorted =  this.getSortedAccounts(accountList);
     let balanceMap = await this.getBalances(sorted, blockNumber);
@@ -101,6 +109,30 @@ class Snapshot {
       hashList: hashList,
       merkleRoot: root
     }
+  }
+
+  async getClaimTX(blockNumber, account) {
+    await this.setupData(blockNumber);
+    let index;
+    let data = this.data[blockNumber];
+    for (key in data.sortedAccountList) {
+      let acct = data.sortedAccountList[key];
+      if (acct == account){
+        index = key;
+        break;
+      }
+    }
+
+    let hashList = this.data[blockNumber].hashList;
+   // console.log(account)
+    let proof = (this.MerkleTree.createProof(hashList, hashList[index]))
+    let balance = data.balanceMap[account];
+
+    let bool = await this.snapshot.methods.checkProof(proof.hashes, proof.hashRight).call();
+  //  console.log(bool);
+
+    return this.snapshot.methods.claim(account, balance, proof.hashes, proof.hashRight);
+
   }
 
 }
