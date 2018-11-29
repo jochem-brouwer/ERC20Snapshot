@@ -18,6 +18,8 @@ describe('Snapshot', function () {
   let accounts;
   let Snap;
 
+  let erc20gas;
+
   beforeEach(async () => {
     accounts =  await web3.eth.getAccounts();
 
@@ -35,6 +37,8 @@ describe('Snapshot', function () {
 
     ERC20Contract = new web3.eth.Contract(ERC20.abi, receipt.contractAddress);
     Snap = new Snapshot(receipt.contractAddress, receipt.blockNumber, web3)
+
+    erc20gas = receipt.gasUsed;
 
   })
 
@@ -69,11 +73,17 @@ describe('Snapshot', function () {
 
 
     ERC20SnapshotContract = new web3.eth.Contract(ERC20Snapshot.abi, receipt.contractAddress);
+    console.log("ERC20 deployment cost: " + erc20gas);
+    console.log("Snapshot deployment cost: " + receipt.gasUsed);
+
+    Snap.setSnapshotContract(receipt.contractAddress);
+
+    let data = Snap.data[blockN]
 
     //let bool = await ERC20SnapshotContract.methods.checkProof(proof.hashes, proof.hashRight).call();
     //console.log(bool);
 
-    let data = Snap.data[blockN]
+    /*let data = Snap.data[blockN]
     let account;
     let index;
 
@@ -97,7 +107,20 @@ describe('Snapshot', function () {
 
     let newBalance = await ERC20SnapshotContract.methods.balanceOf(account).call();
     console.log("Balance was: " + data.balanceMap[account] + " and is in the new contract: " + newBalance)
-    assert.equal(data.balanceMap[account], newBalance, "balances should be equal")
+    assert.equal(data.balanceMap[account], newBalance, "balances should be equal") */
+    //console.log(data.sortedAccountList)
+    for (key in data.sortedAccountList) {
+      let account = data.sortedAccountList[key];
+      let tx = await Snap.getClaimTX(blockN, account);
+      
+      let rcpt = await tx.send({from: accounts[0]})
+
+      let newBalance = await ERC20SnapshotContract.methods.balanceOf(account).call();
+      
+      console.log("Balance was: " + data.balanceMap[account] / 1e18 + " and is in the new contract: " + newBalance / 1e18)
+      console.log("Gas usage: " + rcpt.gasUsed);
+      assert.equal(data.balanceMap[account], newBalance, "balances should be equal") 
+    }
 
   })
 
