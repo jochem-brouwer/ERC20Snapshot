@@ -33,7 +33,7 @@ contract ERC20Snapshot is ERC20 {
     }
     
     function hash(address target, uint balance) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(target,balance));
+        return keccak256(abi.encode(target,balance));
     }
 
     function claim(address target, uint balance, bytes32[] calldata hashes, bool[] calldata right) external {
@@ -49,6 +49,10 @@ contract ERC20Snapshot is ERC20 {
         
         _balances[target] = balance;
         emit Transfer(address(0x0), target, balance);
+    }
+    
+    function checkProof(bytes32[] calldata hashes, bool[] calldata hashRight) external view returns (bool) {
+        return MerkleTree.InTree(rootHash, hashes, hashRight);
     }
 
 }
